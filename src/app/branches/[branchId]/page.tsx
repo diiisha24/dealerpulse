@@ -73,7 +73,7 @@ export default async function BranchPage({ params, searchParams }: PageProps) {
         <KpiStrip s={s} benchmark={group} asOf={`As of ${formatDate(store.asOf)}`} />
         <TargetNote realism={targetRealism(store, scope, range, trend)} subject={branch.name} />
 
-        <div className="grid gap-5 xl:grid-cols-5">
+        <div className="grid items-start gap-5 xl:grid-cols-5">
           <Section
             className="xl:col-span-3"
             title="Needs attention"
