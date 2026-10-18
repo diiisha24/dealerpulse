@@ -145,6 +145,8 @@ describe('curated answers', () => {
     expect(matchCurated('Which booked orders are stuck?')).toBe('stuck');
     expect(matchCurated('why are deliveries late')).toBe('delays');
     expect(matchCurated('how is the Fortuner doing')).toBe('models');
+    expect(matchCurated('Best results')).toBe('officers');
+    expect(offlineAnswer(store, all, {}, 'Best results').answer).toContain('Ranked by delivered revenue');
     expect(matchCurated('what is the weather in Chennai')).toBeNull();
     const fallback = offlineAnswer(store, all, {}, 'tell me a joke');
     expect(fallback.matched).toBeNull();
@@ -230,19 +232,19 @@ describe('verifyNumbers', () => {
 describe('config and rate limit', () => {
   it('goes offline without a key or with the kill switch off', () => {
     expect(readAskConfig({}).live).toBe(false);
-    expect(readAskConfig({ ANTHROPIC_API_KEY: 'k', ASK_AI_ENABLED: 'false' }).live).toBe(false);
-    expect(readAskConfig({ ANTHROPIC_API_KEY: 'k' }).live).toBe(true);
+    expect(readAskConfig({ GOOGLE_API_KEY: 'k', ASK_AI_ENABLED: 'false' }).live).toBe(false);
+    expect(readAskConfig({ GOOGLE_API_KEY: 'k' }).live).toBe(true);
   });
 
   it('reads the model and limits, falling back on invalid values', () => {
     expect(readAskConfig({})).toMatchObject({ model: DEFAULT_MODEL, perMinute: 8, perDay: 60 });
     expect(
-      readAskConfig({ ASK_AI_MODEL: 'claude-x-1', ASK_AI_RATE_LIMIT_PER_MINUTE: '3', ASK_AI_RATE_LIMIT_PER_DAY: '20' }),
-    ).toMatchObject({ model: 'claude-x-1', perMinute: 3, perDay: 20 });
+      readAskConfig({ GEMINI_MODEL: 'gemini-test-1', ASK_AI_RATE_LIMIT_PER_MINUTE: '3', ASK_AI_RATE_LIMIT_PER_DAY: '20' }),
+    ).toMatchObject({ model: 'gemini-test-1', perMinute: 3, perDay: 20 });
     for (const bad of ['0', '-1', '2.5', 'abc', '']) {
       expect(readAskConfig({ ASK_AI_RATE_LIMIT_PER_MINUTE: bad }).perMinute).toBe(8);
     }
-    expect(readAskConfig({ ASK_AI_MODEL: 'bad model!' }).model).toBe(DEFAULT_MODEL);
+    expect(readAskConfig({ GEMINI_MODEL: 'bad model!' }).model).toBe(DEFAULT_MODEL);
   });
 
   it('limits per minute and per day', () => {

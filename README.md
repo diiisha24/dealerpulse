@@ -6,7 +6,7 @@ See [DECISIONS.md](DECISIONS.md) for product decisions, tradeoffs and patterns i
 
 ## Run locally
 
-Requires Node.js 18.18 or later (tested on 20.x).
+Requires Node.js 20 or later (tested on 20.x).
 
 ```bash
 npm install
@@ -37,7 +37,7 @@ Or, with the Vercel CLI: `npx vercel` from this folder, then `npx vercel --prod`
 
 The **Ask DealerPulse** button (bottom right, on every page) opens a chat drawer. It answers questions about the range and branch or sales officer in the current URL.
 
-- **Live mode** sends the question to Claude (`@anthropic-ai/sdk`, server-side only, in `src/app/api/ask/route.ts`). The model only sees a fact sheet built from our own metrics (`src/lib/factsheet.ts`): aggregates, lead IDs and staff names, with no customer names or phone numbers. The figures in each answer are checked against that fact sheet, and the drawer shows "Couldn't verify every figure" when one isn't found.
+- **Live mode** sends the question to Gemini (`@google/genai`, server-side only, in `src/app/api/ask/route.ts`). The model only sees a fact sheet built from our own metrics (`src/lib/factsheet.ts`): aggregates, lead IDs and staff names, with no customer names or phone numbers. The figures in each answer are checked against that fact sheet, and the drawer shows "Couldn't verify every figure" when one isn't found.
 - **Offline mode** is used when no key is set or the kill switch is off. It answers nine curated decision questions straight from the dashboard metrics (`src/lib/curatedAnswers.ts`), with no API call. The drawer shows an "Offline answers" badge.
 
 ### Environment variables
@@ -46,9 +46,9 @@ Copy `.env.example` to `.env.local` for local development. Never commit a real k
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | (unset) | Claude API key. Without it the chatbot runs in offline mode. Server-side only; never use a `NEXT_PUBLIC_` prefix. |
+| `GOOGLE_API_KEY` | (unset) | Google AI Studio API key. Without it the chatbot runs in offline mode. Server-side only; never use a `NEXT_PUBLIC_` prefix. |
 | `ASK_AI_ENABLED` | `true` | Kill switch. Set it to `false` to force offline mode without removing the key. |
-| `ASK_AI_MODEL` | `claude-opus-5-5` | Model ID for live answers. |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model ID for live answers. |
 | `ASK_AI_RATE_LIMIT_PER_MINUTE` | `8` | Live questions allowed per IP per minute. |
 | `ASK_AI_RATE_LIMIT_PER_DAY` | `60` | Live questions allowed per IP per day. |
 
@@ -57,7 +57,7 @@ The two limits must be positive whole numbers; any other value falls back to the
 ### Vercel setup
 
 1. In Vercel, open the project, then **Settings → Environment Variables**.
-2. Add `ANTHROPIC_API_KEY` (mark it **Sensitive**) for the Production and Preview environments. Add the other variables only if you want values other than the defaults.
+2. Add `GOOGLE_API_KEY` (mark it **Sensitive**) for the Production and Preview environments. Add `GEMINI_MODEL` if you want a model other than the default.
 3. Redeploy so the new values take effect.
 
 To switch the AI off in an emergency, set `ASK_AI_ENABLED` to `false` and redeploy. The chatbot keeps working in offline mode.

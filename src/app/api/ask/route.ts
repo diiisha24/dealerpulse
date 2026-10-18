@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { ApiError, FinishReason, GoogleGenAI } from '@google/genai';
 import { readAskConfig } from '@/lib/askConfig';
 import { MAX_BODY_BYTES, parseAskRequest, type AskRequest } from '@/lib/askRequest';
 import { offlineAnswer } from '@/lib/curatedAnswers';
@@ -26,7 +26,7 @@ const REFUSAL_ANSWER =
 
 let limiter: RateLimiter | null = null;
 let limiterKey = '';
-let client: Anthropic | null = null;
+let client: GoogleGenAI | null = null;
 
 function getLimiter(perMinute: number, perDay: number): RateLimiter {
   const key = `${perMinute}/${perDay}`;
@@ -37,9 +37,14 @@ function getLimiter(perMinute: number, perDay: number): RateLimiter {
   return limiter;
 }
 
-function getClient(): Anthropic {
+function getClient(): GoogleGenAI {
   // The key is read on the server only and never sent to the browser or logged.
-  if (!client) client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 45_000 });
+  if (!client) {
+    client = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+      httpOptions: { timeout: 45_000 },
+    });
+  }
   return client;
 }
 
@@ -95,41 +100,39 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: message }, 429, { 'Retry-After': String(limit.retryAfterSec) });
   }
 
-  return askClaude(ask, config.model, buildFactSheet(store, ask.range, ask.scope));
+  return askGemini(ask, config.model, buildFactSheet(store, ask.range, ask.scope));
 }
 
-async function askClaude(ask: AskRequest, model: string, factSheet: string): Promise<Response> {
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    ...ask.history.map((t) => ({ role: t.role, content: t.text })),
-    { role: 'user', content: ask.question },
+async function askGemini(ask: AskRequest, model: string, factSheet: string): Promise<Response> {
+  const contents = [
+    ...ask.history.map((turn) => ({
+      role: turn.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: turn.text }],
+    })),
+    { role: 'user', parts: [{ text: ask.question }] },
   ];
 
   try {
-    const response = await getClient().beta.messages.create({
+    const response = await getClient().models.generateContent({
       model,
-      max_tokens: 4000,
-      // Thinking is always adaptive on this model: no `thinking` or `temperature` param.
-      output_config: { effort: 'low' },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: [
-        { type: 'text', text: SYSTEM_PROMPT },
-        // Byte-stable per range and scope, so repeat questions read it from the cache.
-        { type: 'text', text: factSheet, cache_control: { type: 'ephemeral' } },
-      ],
-      messages,
+      contents,
+      config: {
+        systemInstruction: `${SYSTEM_PROMPT}\n\n${factSheet}`,
+        maxOutputTokens: 4000,
+      },
     });
 
-    if (response.stop_reason === 'refusal') {
+    const finishReason = response.candidates?.[0]?.finishReason;
+    if (
+      finishReason &&
+      finishReason !== FinishReason.STOP &&
+      finishReason !== FinishReason.MAX_TOKENS
+    ) {
       return json({ mode: 'live', answer: REFUSAL_ANSWER, verified: true, unverifiedNumbers: [] });
     }
 
-    let answer = response.content
-      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-      .trim();
-    if (response.stop_reason === 'max_tokens') {
+    let answer = response.text?.trim() ?? '';
+    if (finishReason === FinishReason.MAX_TOKENS) {
       answer = `${answer}\n\n(This answer was cut short. Try a narrower question.)`.trim();
     }
     if (!answer) {
@@ -145,42 +148,32 @@ async function askClaude(ask: AskRequest, model: string, factSheet: string): Pro
 
 /** Maps SDK errors to friendly messages. Raw error text stays in the server log, without the key. */
 function apiErrorResponse(error: unknown): Response {
-  const log = (kind: string) => {
-    const status = error instanceof Anthropic.APIError ? error.status : undefined;
-    console.error(`[ask] ${kind}${status ? ` (${status})` : ''}`);
-  };
-
-  if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
-    log('credentials rejected');
-    return json({ error: 'Ask DealerPulse is not set up correctly. Please tell the dashboard admin.' }, 503);
-  }
-  if (error instanceof Anthropic.NotFoundError) {
-    log('model not found');
-    return json({ error: 'Ask DealerPulse is not set up correctly. Please tell the dashboard admin.' }, 503);
-  }
-  if (error instanceof Anthropic.RateLimitError) {
-    log('upstream rate limit');
-    return json({ error: 'Ask DealerPulse is busy right now. Please try again in a minute.' }, 429, { 'Retry-After': '60' });
-  }
-  if (error instanceof Anthropic.BadRequestError) {
-    log('bad request');
-    return json({ error: "That question couldn't be processed. Please rephrase it and try again." }, 502);
-  }
-  if (error instanceof Anthropic.InternalServerError) {
-    log('upstream server error');
-    return json({ error: 'The AI service is having trouble. Please try again shortly.' }, 503);
-  }
-  if (error instanceof Anthropic.APIConnectionTimeoutError) {
-    log('timeout');
-    return json({ error: 'That took too long. Please try again.' }, 504);
-  }
-  if (error instanceof Anthropic.APIConnectionError) {
-    log('connection error');
-    return json({ error: "We couldn't reach the AI service. Please try again shortly." }, 503);
-  }
-  if (error instanceof Anthropic.APIError) {
-    log('api error');
+  if (error instanceof ApiError) {
+    const status = error.status;
+    if (status === 401 || status === 403 || status === 404) {
+      console.error(`[ask] ${status === 404 ? 'model not found' : 'credentials rejected'} (${status})`);
+      return json({ error: 'Ask DealerPulse is not set up correctly. Please tell the dashboard admin.' }, 503);
+    }
+    if (status === 429) {
+      console.error('[ask] upstream rate limit (429)');
+      return json({ error: 'Ask DealerPulse is busy right now. Please try again in a minute.' }, 429, {
+        'Retry-After': '60',
+      });
+    }
+    if (status === 400) {
+      console.error('[ask] bad request (400)');
+      return json({ error: "That question couldn't be processed. Please rephrase it and try again." }, 502);
+    }
+    if (status >= 500) {
+      console.error(`[ask] upstream server error (${status})`);
+      return json({ error: 'The AI service is having trouble. Please try again shortly.' }, 503);
+    }
+    console.error(`[ask] api error (${status})`);
     return json({ error: 'Something went wrong. Please try again.' }, 502);
+  }
+  if (error instanceof Error && error.name === 'AbortError') {
+    console.error('[ask] timeout');
+    return json({ error: 'That took too long. Please try again.' }, 504);
   }
   console.error('[ask] unexpected error', error instanceof Error ? error.name : typeof error);
   return json({ error: 'Something went wrong. Please try again.' }, 500);

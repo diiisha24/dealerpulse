@@ -46,7 +46,21 @@ export const CURATED_QUESTIONS: readonly CuratedQuestion[] = [
   {
     id: 'officers',
     question: 'Who are the top and bottom sales officers?',
-    keywords: ['officer', 'reps', 'sales rep', 'salesperson', 'staff', 'people', 'top', 'bottom', 'perform', 'team'],
+    keywords: [
+      'officer',
+      'reps',
+      'sales rep',
+      'salesperson',
+      'staff',
+      'people',
+      'top',
+      'bottom',
+      'perform',
+      'team',
+      'best results',
+      'best-performing',
+      'best performing',
+    ],
   },
   {
     id: 'sources',

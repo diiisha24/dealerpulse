@@ -1,6 +1,6 @@
 /** Ask DealerPulse settings, read from server-side environment variables. */
 
-export const DEFAULT_MODEL = 'claude-opus-5-5';
+export const DEFAULT_MODEL = 'gemini-2.5-flash';
 export const DEFAULT_PER_MINUTE = 8;
 export const DEFAULT_PER_DAY = 60;
 
@@ -22,8 +22,8 @@ function positiveInt(value: string | undefined, fallback: number): number {
 
 export function readAskConfig(env: Env = process.env): AskConfig {
   const enabled = env.ASK_AI_ENABLED?.trim().toLowerCase() !== 'false';
-  const hasKey = Boolean(env.ANTHROPIC_API_KEY?.trim());
-  const model = env.ASK_AI_MODEL?.trim();
+  const hasKey = Boolean(env.GOOGLE_API_KEY?.trim());
+  const model = env.GEMINI_MODEL?.trim();
   return {
     live: enabled && hasKey,
     // Model IDs are lowercase letters, digits, dots and dashes; anything else falls back.
