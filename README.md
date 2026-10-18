@@ -52,7 +52,7 @@ Copy `.env.example` to `.env.local` for local development. Never commit a real k
 | `ASK_AI_RATE_LIMIT_PER_MINUTE` | `8` | Live questions allowed per IP per minute. |
 | `ASK_AI_RATE_LIMIT_PER_DAY` | `60` | Live questions allowed per IP per day. |
 
-The two limits must be positive whole numbers; any other value falls back to the default. The limit is held in memory per server instance, which is fine for a demo. A production deployment needs a shared store such as Vercel KV. Also set a monthly spend limit in the Anthropic Console.
+The two limits must be positive whole numbers; any other value falls back to the default. The limit is held in memory per server instance, which is fine for a demo. A production deployment needs a shared store such as Vercel KV. Also set a usage budget in Google AI Studio or Google Cloud, depending on how the API key was created.
 
 ### Vercel setup
 

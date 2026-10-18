@@ -42,7 +42,7 @@ The overview opens with a plain-English briefing, then six vital signs, then a r
 
 8. **Privacy by default.** Phone numbers are masked (`•••••••594`) before they leave the server, including in CSV exports. CSV cells are also guarded against spreadsheet formula injection.
 
-9. **Deterministic briefings instead of an LLM call.** The summaries are template-driven. They are instant, free, always consistent with the numbers, and need no API key on Vercel. The tradeoff is less varied prose. An LLM layer could be added on top of the same structured inputs (see below).
+9. **Deterministic executive briefings, with optional grounded Gemini Q&A.** The on-page briefings remain template-driven: instant, free, and consistent with the dashboard numbers. Ask DealerPulse separately supports live Gemini answers from a server-built fact sheet, verifies answer figures against that sheet, and falls back to curated metric-based answers when no Google API key is configured.
 
 10. **Light theme, tablet-first.** The minimum bar was desktop and tablet. Below 1024 px the sidebar becomes a top bar, wide tables scroll inside their own card, and tiles reflow from six columns to three to two. I skipped dark mode to spend the time on insight quality.
 
@@ -72,16 +72,15 @@ The overview opens with a plain-English briefing, then six vital signs, then a r
 
 ## What I'd build next
 
-1. **Forecast to month end.** Project each branch's landing position from its open pipeline × stage conversion rates, with a confidence band, so the conversation moves from "where are we?" to "will we make it?".
+1. **Production data integration.** Replace the synthetic JSON file with an incremental CRM sync, freshness indicators, and explicit data-quality monitoring.
 2. **Alert workflow.** Assign, snooze and resolve alerts, with an owner and due date stored in a database. Then measure time-to-action per manager.
 3. **Scheduled digests.** A Monday-morning email or WhatsApp briefing per branch manager, generated from the same alert engine.
-4. **Live CRM connector.** Replace the JSON file with an incremental sync, so "as of" becomes "updated 5 minutes ago".
-5. **LLM-written commentary on demand.** "Explain Lakeside's Q4" would call an LLM with the structured metrics, which keeps the numbers authoritative and the prose richer.
-6. **Role-based views.** A branch manager lands on their own branch, and a CEO on the group. This needs authentication, which was out of scope.
-7. **Model and pricing analysis.** Win rate by model and deal size, and discounting patterns from negotiation notes.
+4. **Forecast calibration.** Compare forecasted pipeline outcomes with real future results and add confidence bands only after enough history exists to validate them.
+5. **Role-based views.** A branch manager lands on their own branch, and a CEO on the group. This needs authentication, which was out of scope.
+6. **Model and pricing analysis.** Win rate by model and deal size, and discounting patterns from negotiation notes.
 
 ---
 
 ## Tech
 
-Next.js 14.2 (App Router, Server Components) · TypeScript (strict) · Tailwind CSS 3 · Recharts 2 · Vitest. All dependencies are MIT licensed. 17 unit tests cover the metric engine, range parsing, alerts, the what-if model and CSV escaping. Lint and type-check are clean.
+Next.js 15.5 (App Router, Server Components) · TypeScript (strict) · Tailwind CSS 3 · Recharts 2 · Vitest. Dependencies use their respective upstream licenses. The Vitest suite covers the metric engine, range parsing, alerts, AI request/configuration safeguards, narrative copy, and CSV escaping; lint, type-check and production build are validated before release.
