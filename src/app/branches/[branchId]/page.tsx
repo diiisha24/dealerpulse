@@ -22,23 +22,25 @@ import { funnelTakeaway, lostTakeaway, trendTakeaway } from '@/lib/takeaways';
 import { targetRealism } from '@/lib/targets';
 
 interface PageProps {
-  params: { branchId: string };
-  searchParams: Record<string, string | string[] | undefined>;
+  params: Promise<{ branchId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const branch = getStore().branchById.get(params.branchId);
+export async function generateMetadata({ params }: Pick<PageProps, 'params'>): Promise<Metadata> {
+  const { branchId } = await params;
+  const branch = getStore().branchById.get(branchId);
   // The segment layout already answers 404 for an unknown ID; this keeps the type narrowed.
   if (!branch) notFound();
   return { title: branch.name };
 }
 
-export default function BranchPage({ params, searchParams }: PageProps) {
+export default async function BranchPage({ params, searchParams }: PageProps) {
+  const [{ branchId }, queryParams] = await Promise.all([params, searchParams]);
   const store = getStore();
-  const branch = store.branchById.get(params.branchId);
+  const branch = store.branchById.get(branchId);
   if (!branch) notFound();
 
-  const range = parseRange(searchParams, store.months);
+  const range = parseRange(queryParams, store.months);
   const query = rangeQuery(range, store.months);
   const scope = { branchId: branch.id };
 

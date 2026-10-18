@@ -18,24 +18,26 @@ import { buildBriefing } from '@/lib/narrative';
 import { parseRange, rangeQuery } from '@/lib/range';
 
 interface PageProps {
-  params: { repId: string };
-  searchParams: Record<string, string | string[] | undefined>;
+  params: Promise<{ repId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const rep = getStore().repById.get(params.repId);
+export async function generateMetadata({ params }: Pick<PageProps, 'params'>): Promise<Metadata> {
+  const { repId } = await params;
+  const rep = getStore().repById.get(repId);
   // The segment layout already answers 404 for an unknown ID; this keeps the type narrowed.
   if (!rep) notFound();
   return { title: rep.name };
 }
 
-export default function RepPage({ params, searchParams }: PageProps) {
+export default async function RepPage({ params, searchParams }: PageProps) {
+  const [{ repId }, queryParams] = await Promise.all([params, searchParams]);
   const store = getStore();
-  const rep = store.repById.get(params.repId);
+  const rep = store.repById.get(repId);
   if (!rep) notFound();
   const branch = store.branchById.get(rep.branch_id);
 
-  const range = parseRange(searchParams, store.months);
+  const range = parseRange(queryParams, store.months);
   const query = rangeQuery(range, store.months);
   const scope = { repId: rep.id };
 

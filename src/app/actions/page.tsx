@@ -8,12 +8,13 @@ import { parseRange, rangeQuery } from '@/lib/range';
 export const metadata: Metadata = { title: 'Action center' };
 
 interface PageProps {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default function ActionsPage({ searchParams }: PageProps) {
+export default async function ActionsPage({ searchParams }: PageProps) {
+  const queryParams = await searchParams;
   const store = getStore();
-  const range = parseRange(searchParams, store.months);
+  const range = parseRange(queryParams, store.months);
   const query = rangeQuery(range, store.months);
   const alerts = buildAlerts(store, range);
   const branches = store.branches.map((b) => ({ id: b.id, name: b.name }));

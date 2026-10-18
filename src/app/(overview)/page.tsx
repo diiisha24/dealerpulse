@@ -32,12 +32,13 @@ import { inRange, parseRange, rangeQuery } from '@/lib/range';
 import { targetRealism } from '@/lib/targets';
 
 interface PageProps {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default function OverviewPage({ searchParams }: PageProps) {
+export default async function OverviewPage({ searchParams }: PageProps) {
+  const queryParams = await searchParams;
   const store = getStore();
-  const range = parseRange(searchParams, store.months);
+  const range = parseRange(queryParams, store.months);
   const query = rangeQuery(range, store.months);
 
   const group = summarize(store, {}, range);
@@ -63,7 +64,7 @@ export default function OverviewPage({ searchParams }: PageProps) {
         <KpiStrip s={group} asOf={asOf} />
         <TargetNote realism={targetRealism(store, {}, range, trend)} />
 
-        <div className="grid gap-5 xl:grid-cols-5">
+        <div className="grid items-start gap-5 xl:grid-cols-5">
           <Section
             className="xl:col-span-3"
             title="Needs attention"
