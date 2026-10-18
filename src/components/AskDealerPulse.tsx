@@ -3,6 +3,7 @@
 import clsx from 'clsx';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Fragment, useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { MAX_QUESTION_CHARS } from '@/lib/askRequest';
 import { CURATED_QUESTIONS } from '@/lib/curatedQuestions';
 import { formatMonth } from '@/lib/format';
 
@@ -45,7 +46,6 @@ interface Scope {
   repId?: string;
 }
 
-const MAX_CHARS = 500;
 const HISTORY_TURNS = 4;
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -201,7 +201,7 @@ export function AskDealerPulse(props: Props) {
   /** Sends a question. `base` is the conversation to continue (a retry passes it without the failed turn). */
   const ask = useCallback(
     async (question: string, base: Message[] = messages) => {
-      const text = question.trim().slice(0, MAX_CHARS);
+      const text = question.trim().slice(0, MAX_QUESTION_CHARS);
       if (!text || pending) return;
 
       const kept = base.filter((m) => !m.error);
@@ -464,7 +464,7 @@ export function AskDealerPulse(props: Props) {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onInputKey}
-                  maxLength={MAX_CHARS}
+                  maxLength={MAX_QUESTION_CHARS}
                   rows={2}
                   placeholder="e.g. Why is Lakeside behind?"
                   aria-describedby={counterId}
@@ -473,7 +473,7 @@ export function AskDealerPulse(props: Props) {
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <span id={counterId} className="num text-[11px] text-ink-muted">
-                      {draft.length}/{MAX_CHARS}
+                      {draft.length}/{MAX_QUESTION_CHARS}
                     </span>
                     {messages.length > 0 && (
                       <button type="button" onClick={clear} className="text-xs font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline">

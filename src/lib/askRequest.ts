@@ -6,7 +6,7 @@ import type { MonthRange } from './types';
 /** Pure request validation for POST /api/ask, kept here so it is testable without HTTP. */
 
 export const MAX_BODY_BYTES = 16 * 1024;
-export const MAX_QUESTION_CHARS = 500;
+export const MAX_QUESTION_CHARS = 2000;
 export const MAX_HISTORY_ITEMS = 4;
 export const MAX_HISTORY_CHARS = 1500;
 

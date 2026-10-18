@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MODEL, readAskConfig } from './askConfig';
-import { MAX_BODY_BYTES, parseAskRequest } from './askRequest';
+import { MAX_BODY_BYTES, MAX_QUESTION_CHARS, parseAskRequest } from './askRequest';
 import { answerCurated, offlineAnswer } from './curatedAnswers';
 import { CURATED_QUESTIONS, matchCurated } from './curatedQuestions';
 import { getStore } from './data';
@@ -77,7 +77,7 @@ describe('parseAskRequest', () => {
     ['no question', {}],
     ['an empty question', { question: '   ' }],
     ['a non-string question', { question: 42 }],
-    ['a question over 500 characters', { question: 'a'.repeat(501) }],
+    ['a question over the limit', { question: 'a'.repeat(MAX_QUESTION_CHARS + 1) }],
     ['an unknown field', { question: 'Hi', extra: true }],
     ['history that is not a list', { question: 'Hi', history: 'nope' }],
     ['more than 4 history items', { question: 'Hi', history: Array(5).fill({ role: 'user', text: 'x' }) }],
@@ -96,6 +96,10 @@ describe('parseAskRequest', () => {
 
   it('caps the body at about 16 KB', () => {
     expect(MAX_BODY_BYTES).toBe(16 * 1024);
+  });
+
+  it('accepts a question at the character limit', () => {
+    expect(ok({ question: 'a'.repeat(MAX_QUESTION_CHARS) }).ok).toBe(true);
   });
 });
 
