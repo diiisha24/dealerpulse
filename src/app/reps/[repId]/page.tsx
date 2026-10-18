@@ -78,7 +78,7 @@ export default async function RepPage({ params, searchParams }: PageProps) {
           <BriefingCard briefing={buildBriefing(store, scope, range, alerts)} title="Rep briefing" />
           <KpiStrip s={s} benchmark={branchSummary} benchmarkLabel="branch" />
 
-          <div className="grid gap-5 xl:grid-cols-5">
+          <div className="grid items-start gap-5 xl:grid-cols-5">
             <Section
               className="xl:col-span-3"
               title="Needs attention"
